@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Tic Tac Toe</title>
+    
+    <!-- Google Fonts Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 1. VISUAL STYLE & CSS VARIABLES --- */
+        :root {
+            --color-red: #ff2e2e;
+            --color-black: #121212;
+            --color-white: #ffffff;
+            --border-thick: 4px solid var(--color-black);
+            --shadow-hard: 8px 8px 0px var(--color-black);
+            --shadow-hard-sm: 4px 4px 0px var(--color-black);
+            --font-head: 'Bangers', cursive;
+            --font-body: 'Open Sans', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--color-white);
+            /* Halftone Pattern */
+            background-image: radial-gradient(var(--color-black) 15%, transparent 16%);
+            background-size: 20px 20px;
+            opacity: 1;
+            font-family: var(--font-body);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Background Decorations */
+        .bg-deco {
+            position: absolute;
+            font-family: var(--font-head);
+            font-size: 15rem;
+            color: var(--color-black);
+            opacity: 0.05;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .deco-tic { top: -50px; left: -20px; transform: rotate(-15deg); }
+        .deco-tac { bottom: -50px; right: -20px; transform: rotate(15deg); }
+
+        /* --- UI COMPONENTS --- */
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .screen.hidden {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+            z-index: -10;
+        }
+
+        .screen.active {
+            opacity: 1;
+            transform: scale(1);
+            z-index: 10;
+        }
+
+        h1, h2 {
+            font-family: var(--font-head);
+            color: var(--color-black);
+            margin: 0 0 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Comic Badge Title */
+        .title-badge {
+            background-color: var(--color-red);
+            color: var(--color-white);
+            padding: 15px 40px;
+            font-size: 4rem;
+            border: var(--border-thick);
+            box-shadow: var(--shadow-hard);
+            transform: rotate(-3deg);
+            margin-bottom: 50px;
+            text-shadow: 2px 2px 0 var(--color-black);
+        }
+
+        /* Buttons */
+        .comic-btn {
+            font-family: var(--font-head);
+            font-size: 1.8rem;
+            background: var(--color-white);
+            color: var(--color-black);
+            border: var(--border-thick);
+            padding: 10px 30px;
+            margin: 10px;
+            cursor: pointer;
+            box-shadow: var(--shadow-hard);
+            transition: all 0.1s;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .comic-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 10px 10px 0px var(--color-black);
+            background: #fff0f0;
+        }
+
+        .comic-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 4px 4px 0px var(--color-black);
+        }
+
+        .btn-red {
+            background-color: var(--color-red);
+            color: var(--color-white);
+        }
+        
+        /* --- SETTINGS SCREEN --- */
+        .settings-container {
+            background: white;
+            padding: 40px;
+            border: var(--border-thick);
+            box-shadow: var(--shadow-hard);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* Retro Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            margin: 20px 0;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 30px;
+            width: 30px;
+            border: var(--border-thick);
+            background: var(--color-red);
+            cursor: pointer;
+            margin-top: -12px;
+            box-shadow: 2px 2px 0 var(--color-black);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: var(--color-black);
+            border: 2px solid var(--color-black);
+        }
+
+        .credits-box {
+            margin-top: 30px;
+            padding: 15px;
+            border: 3px dashed var(--color-black);
+            transform: rotate(2deg);
+            background: #eee;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* --- GAME SCREEN --- */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 20px;
+        }
+
+        /* Turn Indicator - Speech Bubble */
+        .turn-bubble {
+            background: var(--color-white);
+            border: var(--border-thick);
+            padding: 10px 20px;
+            font-family: var(--font-head);
+            font-size: 1.5rem;
+            position: relative;
+            box-shadow: var(--shadow-hard-sm);
+        }
+        /* Triangle for speech bubble */
+        .turn-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: 20px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid var(--color-black);
+        }
+
+        /* Board Container */
+        .board-container {
+            position: relative;
+            padding: 20px;
+            background: var(--color-red);
+            border: var(--border-thick);
+            box-shadow: var(--shadow-hard);
+        }
+
+        /* Bolts */
+        .bolt {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--color-black);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .b-tl { top: 5px; left: 5px; }
+        .b-tr { top: 5px; right: 5px; }
+        .b-bl { bottom: 5px; left: 5px; }
+        .b-br { bottom: 5px; right: 5px; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            background: var(--color-black);
+            border: 4px solid var(--color-black);
+        }
+
+        .cell {
+            background: var(--color-white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-head);
+            font-size: 5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cell:hover {
+            background: #f0f0f0;
+        }
+        .cell.x {
+            color: var(--color-red);
+        }
+        .cell.o {
+            color: var(--color-black);
+            -webkit-text-stroke: 2px var(--color-white);
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        /* --- RESULT MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(18, 18, 18, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Comic Burst Shape */
+        .result-burst {
+            background: var(--color-white);
+            width: 350px;
+            padding: 30px;
+            border: var(--border-thick);
+            box-shadow: 15px 15px 0 var(--color-red);
+            text-align: center;
+            transform: rotate(-2deg) scale(0.8);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal-overlay.show .result-burst {
+            transform: rotate(-2deg) scale(1);
+        }
+
+        .result-title {
+            font-size: 4rem;
+            color: var(--color-black);
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 0 var(--color-red);
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 400px) {
+            .board {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+            }
+            .title-badge { font-size: 2.5rem; }
+            .comic-btn { font-size: 1.4rem; min-width: 200px; }
+            .bg-deco { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Decorations -->
+    <div class="bg-deco deco-tic">TIC</div>
+    <div class="bg-deco deco-tac">TAC</div>
+
+    <!-- --- SCREEN 1: MAIN MENU --- -->
+    <div id="screen-menu" class="screen active">
+        <div class="title-badge">TIC TAC TOE</div>
+        
+        <button class="comic-btn" onclick="startGame('pvp')">2 PLAYER MODE</button>
+        <button class="comic-btn" onclick="startGame('pvc')">VS COMPUTER</button>
+        <button class="comic-btn btn-red" onclick="showSettings()">SETTINGS</button>
+    </div>
+
+    <!-- --- SCREEN 2: SETTINGS --- -->
+    <div id="screen-settings" class="screen hidden">
+        <div class="settings-container">
+            <h2>SETTINGS</h2>
+            
+            <label for="volume-slider" style="font-weight:bold; font-size:1.2rem;">VOLUME</label>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+            
+            <button id="sound-toggle" class="comic-btn" style="width:100%; margin: 20px 0; font-size:1.2rem;" onclick="toggleSound()">
+                Sound Is ON 🔊
+            </button>
+
+            <button class="comic-btn btn-red" style="width:100%; margin: 0; font-size:1.2rem;" onclick="clickBackToMenu()">
+                BACK TO MENU
+            </button>
+
+            <div class="credits-box">
+                DEVELOPED BY - SHIVAM KUMAR
+            </div>
+        </div>
+    </div>
+
+    <!-- --- SCREEN 3: GAME BOARD --- -->
+    <div id="screen-game" class="screen hidden">
+        <div class="game-header">
+            <button class="comic-btn" style="min-width:auto; padding: 5px 15px; font-size: 1.2rem;" onclick="clickBackToMenu()">EXIT</button>
+            <div class="turn-bubble" id="turn-indicator">PLAYER X's TURN</div>
+        </div>
+
+        <div class="board-container">
+            <!-- Decorative Bolts -->
+            <div class="bolt b-tl"></div>
+            <div class="bolt b-tr"></div>
+            <div class="bolt b-bl"></div>
+            <div class="bolt b-br"></div>
+
+            <div class="board" id="game-board">
+                <!-- Cells generated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- --- MODAL: RESULTS --- -->
+    <div id="modal-result" class="modal-overlay">
+        <div class="result-burst">
+            <div id="result-message" class="result-title">SMASH!</div>
+            <p id="result-sub" style="font-weight:bold; margin-bottom:20px;">PLAYER X WINS</p>
+            <button class="comic-btn btn-red" onclick="restartGame()">REPLAY</button>
+            <button class="comic-btn" onclick="clickBackToMenu()">MENU</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- GAME STATE --- */
+        const state = {
+            screen: 'menu',
+            mode: 'pvp', // 'pvp' or 'pvc'
+            board: Array(9).fill(null),
+            currentPlayer: 'X',
+            gameActive: false,
+            soundEnabled: true,
+            volume: 0.5
+        };
+
+        const winConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Cols
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        /* --- DOM ELEMENTS --- */
+        const screens = {
+            menu: document.getElementById('screen-menu'),
+            settings: document.getElementById('screen-settings'),
+            game: document.getElementById('screen-game')
+        };
+        const boardEl = document.getElementById('game-board');
+        const turnIndEl = document.getElementById('turn-indicator');
+        const modalEl = document.getElementById('modal-result');
+        const resMsgEl = document.getElementById('result-message');
+        const resSubEl = document.getElementById('result-sub');
+        const volSlider = document.getElementById('volume-slider');
+        const soundBtn = document.getElementById('sound-toggle');
+
+        /* --- HISTORY / BACK BUTTON LOGIC --- */
+        
+        // 1. Initialize History on Load
+        window.addEventListener('load', () => {
+            // Replace current state with menu state so we have a base
+            history.replaceState({screen: 'menu'}, 'Menu', '#menu');
+        });
+
+        // 2. Handle Browser Back Button (Popstate)
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.screen === 'menu') {
+                // If history says menu, show menu
+                visualSwitchToMenu();
+            } else if (event.state === null) {
+                // Fallback for null state
+                visualSwitchToMenu();
+            }
+            // Note: If we are in game, and user presses forward (rare), we don't handle it strictly here
+        });
+
+        /* --- AUDIO SYSTEM (WEB AUDIO API) --- */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            const vol = state.volume;
+
+            switch (type) {
+                case 'click':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                    gainNode.gain.setValueAtTime(vol, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                case 'x':
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.15);
+                    gainNode.gain.setValueAtTime(vol * 0.8, now);
+                    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                    break;
+                case 'o':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.15);
+                    gainNode.gain.setValueAtTime(vol, now);
+                    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                    break;
+                case 'win':
+                    playNote(523.25, now, 'triangle', 0.1);
+                    playNote(659.25, now + 0.1, 'triangle', 0.1);
+                    playNote(783.99, now + 0.2, 'triangle', 0.4);
+                    break;
+                case 'draw':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+                    gainNode.gain.setValueAtTime(vol * 0.8, now);
+                    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                    break;
+            }
+        }
+
+        function playNote(freq, time, type, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(state.volume, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        /* --- NAVIGATION & UI --- */
+        
+        // Only changes CSS, doesn't touch History
+        function switchScreenVisuals(screenName) {
+            Object.values(screens).forEach(s => {
+                s.classList.remove('active');
+                s.classList.add('hidden');
+            });
+            screens[screenName].classList.remove('hidden');
+            screens[screenName].classList.add('active');
+            state.screen = screenName;
+        }
+
+        function showSettings() { 
+            playSound('click');
+            switchScreenVisuals('settings');
+            // Add entry to history
+            history.pushState({screen: 'settings'}, 'Settings', '#settings');
+        }
+
+        // Called when user presses UI button "Back to Menu" or "Exit"
+        function clickBackToMenu() {
+            playSound('click');
+            // Instead of just switching visual, we go back in history.
+            // This triggers 'popstate', which calls visualSwitchToMenu()
+            history.back();
+        }
+
+        // Called by Popstate listener
+        function visualSwitchToMenu() {
+            modalEl.classList.remove('show');
+            switchScreenVisuals('menu');
+        }
+
+        /* --- SETTINGS LOGIC --- */
+        volSlider.addEventListener('input', (e) => {
+            state.volume = e.target.value;
+        });
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            soundBtn.innerText = state.soundEnabled ? "Sound Is ON 🔊" : "Sound Is OFF 🔇";
+            playSound('click');
+        }
+
+        /* --- GAME LOGIC --- */
+        function startGame(mode) {
+            state.mode = mode;
+            restartGame();
+            switchScreenVisuals('game');
+            // Add entry to history
+            history.pushState({screen: 'game'}, 'Game', '#game');
+            playSound('click');
+        }
+
+        function restartGame() {
+            state.board.fill(null);
+            state.currentPlayer = 'X';
+            state.gameActive = true;
+            modalEl.classList.remove('show');
+            renderBoard();
+            updateTurnIndicator();
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            state.board.forEach((cell, index) => {
+                const cellEl = document.createElement('div');
+                cellEl.classList.add('cell');
+                cellEl.dataset.index = index;
+                if (cell) {
+                    cellEl.textContent = cell;
+                    cellEl.classList.add(cell.toLowerCase());
+                }
+                cellEl.addEventListener('click', handleCellClick);
+                boardEl.appendChild(cellEl);
+            });
+        }
+
+        function handleCellClick(e) {
+            const index = e.target.dataset.index;
+            if (!state.gameActive || state.board[index] !== null) return;
+
+            makeMove(index);
+
+            if (state.gameActive && state.mode === 'pvc' && state.currentPlayer === 'O') {
+                setTimeout(makeComputerMove, 500); 
+            }
+        }
+
+        function makeMove(index) {
+            state.board[index] = state.currentPlayer;
+            playSound(state.currentPlayer.toLowerCase());
+            renderBoard();
+
+            if (checkWin()) {
+                endGame(false);
+            } else if (state.board.every(cell => cell !== null)) {
+                endGame(true);
+            } else {
+                state.currentPlayer = state.currentPlayer === 'X' ? 'O' : 'X';
+                updateTurnIndicator();
+            }
+        }
+
+        function updateTurnIndicator() {
+            turnIndEl.innerText = state.mode === 'pvc' && state.currentPlayer === 'O' 
+                ? "COMPUTER's TURN" 
+                : `PLAYER ${state.currentPlayer}'s TURN`;
+        }
+
+        /* --- AI LOGIC --- */
+        function makeComputerMove() {
+            if (!state.gameActive) return;
+
+            let move = findWinningMove('O');
+            if (move === null) move = findWinningMove('X');
+            if (move === null && state.board[4] === null) move = 4;
+            if (move === null) {
+                const available = state.board.map((val, idx) => val === null ? idx : null).filter(val => val !== null);
+                if (available.length > 0) {
+                    move = available[Math.floor(Math.random() * available.length)];
+                }
+            }
+            if (move !== null) makeMove(move);
+        }
+
+        function findWinningMove(player) {
+            for (let i = 0; i < winConditions.length; i++) {
+                const [a, b, c] = winConditions[i];
+                const vals = [state.board[a], state.board[b], state.board[c]];
+                if (vals.filter(v => v === player).length === 2 && vals.includes(null)) {
+                    if (state.board[a] === null) return a;
+                    if (state.board[b] === null) return b;
+                    if (state.board[c] === null) return c;
+                }
+            }
+            return null;
+        }
+
+        function checkWin() {
+            return winConditions.some(condition => {
+                const [a, b, c] = condition;
+                return state.board[a] && 
+                       state.board[a] === state.board[b] && 
+                       state.board[a] === state.board[c];
+            });
+        }
+
+        function endGame(isDraw) {
+            state.gameActive = false;
+            modalEl.classList.add('show');
+            
+            if (isDraw) {
+                resMsgEl.innerText = "DRAW!";
+                resSubEl.innerText = "NOBODY WINS THIS TIME!";
+                playSound('draw');
+            } else {
+                const winner = state.currentPlayer;
+                const isHumanWin = (state.mode === 'pvc' && winner === 'X') || state.mode === 'pvp';
+                
+                resMsgEl.innerText = isHumanWin ? "SMASH!" : "OOPS!";
+                resSubEl.innerText = state.mode === 'pvc' && winner === 'O' 
+                    ? "THE COMPUTER WON!" 
+                    : `PLAYER ${winner} WINS!`;
+                
+                playSound(isHumanWin ? 'win' : 'draw');
+            }
+        }
+    </script>
+</body>
+</html>
